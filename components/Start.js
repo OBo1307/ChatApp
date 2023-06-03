@@ -6,14 +6,18 @@ import {
 	Text,
 	TouchableOpacity,
 	ImageBackground,
+	KeyboardAvoidingView,
 } from 'react-native';
 
 const Start = ({ navigation }) => {
+	// Initialize the `name` and `backgroundColor` states with empty strings
 	const [name, setName] = useState('');
 	const [backgroundColor, setBackgroundColor] = useState('');
 
+	// Function to navigate to the `Chat` screen and pass `name` and `backgroundColor` as parameters
 	const onPress = () => navigation.navigate('Chat', { name, backgroundColor });
 
+	// Function to set the `backgroundColor` state to the selected color
 	const handleColorPress = (color) => {
 		setBackgroundColor(color);
 	};
@@ -86,6 +90,10 @@ const Start = ({ navigation }) => {
 					</TouchableOpacity>
 				</View>
 			</ImageBackground>
+			{/* Render the `KeyboardAvoidingView` component on iOS devices to adjust the layout when the keyboard is shown */}
+			{Platform.OS === 'ios' ? (
+				<KeyboardAvoidingView behavior='padding' />
+			) : null}
 		</View>
 	);
 };
