@@ -7,15 +7,36 @@ import {
 	TouchableOpacity,
 	ImageBackground,
 	KeyboardAvoidingView,
+	Alert,
 } from 'react-native';
 
+import { getAuth, signInAnonymously } from 'firebase/auth';
+
 const Start = ({ navigation }) => {
+	// Initialize the Firebase authentication handler (needed for signInAnonymously())
+	const auth = getAuth();
+
 	// Initialize the `name` and `backgroundColor` states with empty strings
 	const [name, setName] = useState('');
 	const [backgroundColor, setBackgroundColor] = useState('');
 
-	// Function to navigate to the `Chat` screen and pass `name` and `backgroundColor` as parameters
-	const onPress = () => navigation.navigate('Chat', { name, backgroundColor });
+	// Function to navigate to the `Chat` screen and pass the `userID`, `name` and `backgroundColor` as parameters
+	const onPress = () => {
+		// Sign in anonymously using Firebase Authentication
+		signInAnonymously(auth)
+			.then((result) => {
+				// If the sign-in is successful, navigate to the Chat screen and pass the user ID, name, and background color as parameters
+				navigation.navigate('Chat', {
+					userID: result.user.uid,
+					name: name,
+					backgroundColor: backgroundColor,
+				});
+				Alert.alert('Signed in Successfully!');
+			})
+			.catch((error) => {
+				Alert.alert('Unable to sign in, try later again.');
+			});
+	};
 
 	// Function to set the `backgroundColor` state to the selected color
 	const handleColorPress = (color) => {

@@ -1,26 +1,26 @@
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Bubble, GiftedChat } from 'react-native-gifted-chat';
-import {
-	StyleSheet,
-	View,
-	Text,
-	KeyboardAvoidingView,
-	Platform,
-} from 'react-native';
+import { StyleSheet, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useEffect } from 'react';
 
-const Chat = ({ route, navigation }) => {
+import {
+	collection,
+	query,
+	orderBy,
+	onSnapshot,
+	addDoc,
+} from 'firebase/firestore';
+
+const Chat = ({ route, navigation, db }) => {
 	// Get the `name` prop from the `route` object
-	const { name } = route.params;
+	const { name, backgroundColor } = route.params;
 
 	// Initialize the `messages` state with an empty array
 	const [messages, setMessages] = useState([]);
 
 	// Function to append new messages to the `messages` state
 	const onSend = (newMessages) => {
-		setMessages((previousMessages) =>
-			GiftedChat.append(previousMessages, newMessages)
-		);
+		addDoc(collection(db, 'messages'), newMessages[0]);
 	};
 
 	// Function to customize the appearance of chat bubbles
@@ -42,41 +42,38 @@ const Chat = ({ route, navigation }) => {
 
 	// Initialize the `messages` state with some default messages when the component mounts for the first time
 	useEffect(() => {
-		setMessages([
-			{
-				_id: 1,
-				text: 'Hello developer',
-				createdAt: new Date(),
-				user: {
-					_id: 2,
-					name: 'React Native',
-					avatar: 'https://placeimg.com/140/140/any',
-				},
-			},
-			{
-				_id: 2,
-				text: 'This is a system message',
-				createdAt: new Date(),
-				system: true,
-			},
-		]);
+		navigation.setOptions({ title: name });
+		// Query the 'messages' collection in Firestore for the chat messages, ordered by creation date
+		const q = query(collection(db, 'messages'), orderBy('createdAt', 'desc'));
+		// Subscribe to changes to the 'messages' collection in Firestore
+		const unsubMessages = onSnapshot(q, (docs) => {
+			let newMessages = [];
+			// Convert the Firestore document snapshots to an array of message objects
+			docs.forEach((doc) => {
+				newMessages.push({
+					id: doc.id,
+					...doc.data(),
+					createdAt: new Date(doc.data().createdAt.toMillis()),
+				});
+			});
+			// Update the `messages` state with the new messages
+			setMessages(newMessages);
+		});
+		// Unsubscribe from the 'messages' collection when the component unmounts
+		return () => {
+			if (unsubMessages) unsubMessages();
+		};
 	}, []);
 
-	// Set the title of the chat screen using the `useLayoutEffect` hook
-	useLayoutEffect(() => {
-		navigation.setOptions({
-			title: name,
-		});
-	}, [navigation, name]);
-
 	return (
-		<View style={styles.container}>
+		<View style={[styles.container, { backgroundColor }]}>
 			<GiftedChat
 				messages={messages}
 				renderBubble={renderBubble}
-				onSend={(newMessages) => onSend(newMessages)}
+				onSend={onSend}
 				user={{
-					_id: 1,
+					_id: route.params.userID,
+					name: route.params.name,
 				}}
 			/>
 			{/* Render the `KeyboardAvoidingView` component on Android devices to adjust the layout when the keyboard is shown */}
