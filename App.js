@@ -14,6 +14,8 @@ import {
 	disableNetwork,
 } from 'firebase/firestore';
 
+import { getStorage } from 'firebase/storage';
+
 // Ignore a specific warning about AsyncStorage
 import { LogBox, Alert } from 'react-native';
 LogBox.ignoreLogs(['AsyncStorage has been extracted from']);
@@ -55,6 +57,8 @@ const App = () => {
 	// Initialize Cloud Firestore and get a reference to the service
 	const db = getFirestore(app);
 
+	const storage = getStorage(app);
+
 	return (
 		<NavigationContainer>
 			<Stack.Navigator initialRouteName='Start'>
@@ -64,6 +68,7 @@ const App = () => {
 						<Chat
 							isConnected={connectionStatus.isConnected}
 							db={db}
+							storage={storage}
 							{...props}
 						/>
 					)}
