@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { Bubble, GiftedChat, InputToolbar } from 'react-native-gifted-chat';
-import { StyleSheet, View, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+	StyleSheet,
+	View,
+	KeyboardAvoidingView,
+	Platform,
+	Text,
+	TouchableOpacity,
+} from 'react-native';
 import { useEffect } from 'react';
 import CustomActions from './CustomActions';
 import MapView from 'react-native-maps';
+import { Audio } from 'expo-av';
 
 import {
 	collection,
@@ -21,6 +29,8 @@ const Chat = ({ route, navigation, db, isConnected, storage }) => {
 
 	// Initialize the `messages` state with an empty array
 	const [messages, setMessages] = useState([]);
+
+	let soundObject = null;
 
 	// Function to append new messages to the `messages` state
 	const onSend = (newMessages) => {
@@ -41,6 +51,28 @@ const Chat = ({ route, navigation, db, isConnected, storage }) => {
 					},
 				}}
 			/>
+		);
+	};
+
+	const renderAudioBubble = (props) => {
+		return (
+			<View {...props}>
+				<TouchableOpacity
+					style={{ backgroundColor: '#FF0', borderRadius: 10, margin: 5 }}
+					onPress={async () => {
+						if (soundObject) soundObject.unloadAsync();
+						const { sound } = await Audio.Sound.createAsync({
+							uri: props.currentMessage.audio,
+						});
+						soundObject = sound;
+						await sound.playAsync();
+					}}
+				>
+					<Text style={{ textAlign: 'center', color: 'black', padding: 5 }}>
+						Play Sound
+					</Text>
+				</TouchableOpacity>
+			</View>
 		);
 	};
 
@@ -79,16 +111,14 @@ const Chat = ({ route, navigation, db, isConnected, storage }) => {
 		// Unsubscribe from the 'messages' collection when the component unmounts
 		return () => {
 			if (unsubMessages) unsubMessages();
+			if (soundObject) soundObject.unloadAsync();
 		};
 	}, [isConnected]);
 
 	// Function to cache the messages in AsyncStorage
 	const cachedMessages = async (messagesToCache) => {
 		try {
-			await AsyncStorage.setItem(
-				'messages_stored',
-				JSON.stringify(messagesToCache)
-			);
+			await AsyncStorage.setItem('messages', JSON.stringify(messagesToCache));
 		} catch (error) {
 			console.log(error.message);
 		}
@@ -96,8 +126,7 @@ const Chat = ({ route, navigation, db, isConnected, storage }) => {
 
 	// Function to load cached messages from AsyncStorage
 	const loadCachedMessages = async () => {
-		const cachedMessages =
-			(await AsyncStorage.getItem('messages_stored')) || [];
+		const cachedMessages = (await AsyncStorage.getItem('messages')) || [];
 		setMessages(JSON.parse(cachedMessages));
 	};
 
@@ -138,6 +167,7 @@ const Chat = ({ route, navigation, db, isConnected, storage }) => {
 				onSend={onSend}
 				renderActions={renderCustomActions}
 				renderCustomView={renderCustomView}
+				renderMessageAudio={renderAudioBubble}
 				user={{
 					_id: route.params.userID,
 					name: route.params.name,
